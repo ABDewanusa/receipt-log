@@ -22,7 +22,7 @@ One Telegram account = one user. No separate authentication in MVP.
 
 ## Goal
 
-Allow a user to send a receipt photo via Telegram and automatically receive a structured expense record that can be exported as CSV.
+Allow a user to send a receipt photo via Telegram and automatically receive a structured expense record that can be viewed on a web dashboard or exported as CSV.
 
 Primary value:
 
@@ -37,6 +37,7 @@ Primary value:
 - `/start` – onboarding + usage instructions
 - Accept receipt photos (JPG / PNG)
 - `/export` – export all expenses as a CSV file
+- `/web` – generate a magic link to view expenses on the web
     
 
 ### Receipt Processing
@@ -54,9 +55,17 @@ Primary value:
 - Store raw AI output for debugging and reprocessing
 - Store image reference (not inline binary)
 
+### Web Dashboard (Minimal)
+
+- **Authentication**: Magic link via Telegram (no passwords)
+- **View**: Simple list of expenses (Date, Merchant, Amount)
+- **Action**: Download CSV
+- **Constraint**: Read-only (no editing in MVP)
+
 ### Export
 
 - Generate and deliver CSV file via Telegram
+- Download CSV via Web Dashboard
 - Columns:
     `date, merchant, total_amount, currency`
 
@@ -66,9 +75,8 @@ Primary value:
 
 - Teams or shared accounts
 - Expense categories or tagging
-- Editing or correcting extracted data
+- Editing or correcting extracted data (Web is read-only)
 - Analytics, summaries, or reports
-- Web or mobile dashboard with full functionality
 - WhatsApp support (post-MVP)
 - Manual receipt entry
 - Approval workflows
@@ -79,12 +87,13 @@ Primary value:
 
 ## Constraints (Intentional Decisions)
 
-- Telegram is the **only client** in MVP
-- No separate user accounts or passwords
+- **Telegram is the primary input method**
+- **Web is for viewing only**
+- No separate user accounts or passwords (auth via Telegram link)
 - Backend-only access to the database
 - Receipt extraction uses an **AI vision API**, not traditional OCR
 - Receipt images are stored in compressed form
-- MVP must run entirely on **free tiers** of selected services
+- MVP must run entirely on **free tiers** (Vercel, Supabase, Cloudflare R2)
 - WhatsApp support is explicitly deferred until after validation
 
 ---
@@ -106,7 +115,7 @@ Primary value:
 A new user can:
 - Send a receipt photo via Telegram
 - Receive confirmation
-- Download a usable CSV of expenses
+- View expenses on the web or download a usable CSV
 
 All within **under 2 minutes**, with:
 - ≥ **70% of receipts producing a correct total amount**
@@ -128,5 +137,6 @@ If users would be disappointed if the bot stopped working, the MVP succeeded.
 
 The MVP is considered complete when:
 - Telegram → receipt → CSV flow works end-to-end
+- Web dashboard displays user data correctly
 - Data is persisted reliably
 - At least a small group of real users successfully exports expenses

@@ -17,19 +17,24 @@ Primary goal:
 ```
 Telegram User
    ↓ (photo / command)
-Telegram Bot API
+Telegram Bot API (Webhooks)
    ↓
-Next.js API Routes (Vercel)
-   ├─ Image compression
-   ├─ AI extraction (Gemini)
-   ├─ Parsing & validation
-   ├─ Database writes (Supabase)
-   └─ File storage (Cloudflare R2)
+Next.js (Vercel Serverless Functions)
+   ├─ POST /api/telegram-webhook (Bot Logic)
+   │    ├─ Image compression
+   │    ├─ AI extraction (Gemini)
+   │    ├─ Parsing & validation
+   │    └─ Database writes (Supabase)
+   │
+   └─ Web Frontend (Next.js App Router)
+        ├─ GET /dashboard (Magic Link Auth)
+        └─ GET /api/export (CSV Download)
+   
    ↓
-Telegram File Response (CSV)
+Supabase (Postgres) & Cloudflare R2 (Storage)
 ```
 
-The backend is the **single source of truth**. No client talks directly to the database or storage.
+The backend is the **single source of truth**. No client talks directly to the database or storage except the Next.js backend.
 
 ---
 
@@ -37,12 +42,13 @@ The backend is the **single source of truth**. No client talks directly to the d
 
 ### Client
 
-- Telegram Bot (no other clients in MVP)
+- **Telegram Bot** (Primary Input)
+- **Web Dashboard** (Read-only View)
 
-### Backend
+### Backend & Hosting
 
-- Next.js (API routes only)
-- Hosted on Vercel (free tier)
+- **Next.js** (App Router)
+- **Vercel** (Hosting & Serverless Functions)
 
 ### AI / Extraction
 
@@ -62,9 +68,9 @@ The backend is the **single source of truth**. No client talks directly to the d
 
 - TypeScript
 - Node.js
-- Telegram Bot SDK
-- Image processing library (for compression)
-- CSV generation library
+- `node-telegram-bot-api` (Webhook mode)
+- `sharp` (Image compression)
+- `csv-stringify` (CSV generation)
 
 ---
 
@@ -72,18 +78,21 @@ The backend is the **single source of truth**. No client talks directly to the d
 
 ### Environments
 
-- Local development    
-- Production (Vercel)
+- **Local development** (using `ngrok` or similar for webhooks)
+- **Production** (Vercel)
 
 ### Secrets (env vars)
 
-- TELEGRAM_BOT_TOKEN
-- GEMINI_API_KEY
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
-- R2_ACCESS_KEY_ID
-- R2_SECRET_ACCESS_KEY
-- R2_BUCKET_NAME
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_WEBHOOK_URL` (Production URL)
+- `GEMINI_API_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET_NAME`
+- `R2_ENDPOINT`
+- `JWT_SECRET` (for magic links)
 
 Secrets are **never** committed.
 
@@ -97,9 +106,9 @@ Purpose: map Telegram users to internal IDs.
 
 Fields:
 
-- id (uuid, primary key)
-- telegram_user_id (bigint, unique)
-- created_at (timestamp)
+- id (uuid, primary key, default gen_random_uuid())
+- telegram_user_id (bigint, unique, not null)
+- created_at (timestamp with time zone, default now())
 
 ---
 
@@ -109,20 +118,21 @@ Purpose: store structured receipt data.
 
 Fields:
 
-- id (uuid, primary key)
-- user_id (uuid, foreign key → users.id)
+- id (uuid, primary key, default gen_random_uuid())
+- user_id (uuid, foreign key → users.id, not null)
 - merchant (text, nullable)
 - total_amount (numeric, nullable)
-- currency (text, default)
+- currency (text, default 'IDR')
 - date (date, nullable)
-- raw_extraction (json/text)
-- image_path (text)
-- created_at (timestamp)
+- raw_extraction (jsonb, nullable)
+- image_path (text, nullable)
+- created_at (timestamp with time zone, default now())
 
 Rules:
 
 - Missing values are stored as NULL
-- raw_extraction is always stored
+- raw_extraction is stored when available
+- Deleting a user does not cascade; dependent expenses must be handled explicitly
 
 ---
 
@@ -146,14 +156,15 @@ Rules:
 
 ---
 
-## Telegram Bot Design
+## Telegram Bot Design (Webhooks)
 
 ### Supported Commands
 
-- /start
-- /export    
+- `/start` - Onboarding
+- `/export` - Get CSV
+- `/web` - Get Magic Link to Dashboard
 
-### Message Handling
+### Message Handling (Webhook)
 
 #### /start
 
@@ -163,8 +174,14 @@ Rules:
 #### Photo Message
 
 - Validate message contains image
-- Acknowledge receipt immediately
-- Process asynchronously
+- Acknowledge receipt immediately (answerCallbackQuery or sendMessage)
+- Process asynchronously (Vercel function execution)
+  - *Note: Vercel functions have timeouts. For MVP, we attempt inline processing. If too slow, we may need a queue or "processing" state, but keeping it simple first.*
+
+#### /web
+
+- Generate a signed JWT containing `user_id`
+- Send link: `https://[app-url]/dashboard?token=[jwt]`
 
 #### /export
 
@@ -174,19 +191,34 @@ Rules:
 
 ---
 
+## Web Dashboard Design
+
+### /dashboard
+
+- Middleware verifies `token` query param
+- If valid:
+  - Fetch expenses for `user_id` from Supabase
+  - Render simple table: Date | Merchant | Amount
+  - "Download CSV" button
+- If invalid:
+  - Show "Invalid Link" or "Go back to Telegram"
+
+---
+
 ## Receipt Processing Pipeline
 
 ### Step-by-Step Flow
 
-1. Receive photo from Telegram
-2. Download image
-3. Compress image
-4. Upload image to R2
-5. Send image to Gemini API
-6. Receive structured JSON
-7. Validate extracted fields
-8. Insert expense row into Supabase
-9. Respond to user with result summary
+1. Receive Webhook from Telegram (POST /api/telegram-webhook)
+2. Identify User & Image
+3. Download image from Telegram servers
+4. Compress image
+5. Upload image to R2
+6. Send image to Gemini API
+7. Receive structured JSON
+8. Validate extracted fields
+9. Insert expense row into Supabase
+10. Send Telegram message with result summary
 
 Failures at any step must:
 
@@ -286,16 +318,16 @@ This protects free tiers.
 
 ## Build Order (Do Not Skip)
 
-1. Create Supabase project
-2. Create tables
-3. Create R2 bucket
-4. Create Telegram bot
-5. Implement /start
-6. Implement image upload + storage
-7. Implement Gemini extraction
-8. Store expenses
-9. Implement /export
-10. Manual testing with real receipts
+1. **Initialize Next.js Project** (Migrate existing scripts to Next.js structure)
+2. Configure Vercel Deployment
+3. Set up Telegram Webhook Route
+4. Implement `/start` & User Creation
+5. Implement Image Processing Pipeline (in Webhook)
+6. Implement Gemini Extraction
+7. Implement `/web` Magic Link Logic
+8. Build Simple Dashboard Page
+9. Manual testing with real receipts
+10. Final Deployment & Verification
 
 ---
 
@@ -305,18 +337,17 @@ The MVP is technically complete when:
 
 - A Telegram user can send a receipt photo
 - An expense record is stored
-- A CSV can be exported successfully
-- System runs entirely on free tiers
+- User can view expenses via Web Dashboard
+- System runs entirely on free tiers (Vercel)
 
 ---
 
 ## Explicit Non-Responsibilities (MVP)
 
-- No frontend auth
-- No retries or corrections
-- No multi-client support
-- No background jobs
-- No dashboards beyond minimal read-only views
+- No password auth (Magic links only)
+- No complex state management
+- No editing or correction flows
+- No background job queues (unless absolutely necessary for timeout reasons)
 
 ---
 
@@ -324,7 +355,7 @@ The MVP is technically complete when:
 
 - Abstract message ingestion for WhatsApp
 - Add user corrections loop
-- Add dashboard UI
+- Add dashboard UI with charts
 - Add usage analytics
 
 This document intentionally stops here.

@@ -1,12 +1,13 @@
 ReceiptLog MVP — Build Contract
 
 Primary Goal:
-Ship Telegram → receipt → CSV flow.
+Ship Telegram → receipt → CSV/Web flow.
 
 Non-Negotiables:
-- Telegram-only client
+- Telegram is the primary input
+- Web dashboard is read-only
 - No WhatsApp in MVP
-- No dashboards beyond minimal read-only
+- No complex dashboards (list view only)
 - No editing or correction flows
 - AI extraction must return JSON only
 - Total amount is the only required field
@@ -16,6 +17,7 @@ Allowed Shortcuts:
 - Null fields are acceptable
 - Minimal error messages
 - Inline logic over abstractions
+- Magic links for auth (no passwords)
 
 Forbidden:
 - Premature refactors
@@ -24,4 +26,4 @@ Forbidden:
 - “Future-proof” abstractions
 
 Ship Criteria:
-A user can send a receipt and export CSV in under 2 minutes.
+A user can send a receipt and view it on the web or export CSV in under 2 minutes.

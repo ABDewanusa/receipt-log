@@ -6,5 +6,8 @@
 6. AI returns structured data
 7. Expense is saved
 8. Bot replies with summary
-9. User types /export
-10. Bot sends CSV
+9. User types /web
+10. Bot sends Magic Link
+11. User clicks link -> Opens Web Dashboard
+12. User sees expense list
+13. User clicks "Download CSV"

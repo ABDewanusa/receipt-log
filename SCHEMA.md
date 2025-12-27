@@ -62,16 +62,16 @@ Store structured data extracted from receipt images.
 | user_id        | uuid        | not null, foreign key → `users.id`       | Owner of the expense       |
 | merchant       | text        | nullable                                 | Merchant name (best guess) |
 | total_amount   | numeric     | nullable                                 | Extracted total amount     |
-| currency       | text        | not null, default `'USD'`                | Currency code              |
+| currency       | text        | default `'IDR'`                          | Currency code              |
 | date           | date        | nullable                                 | Receipt date               |
-| raw_extraction | jsonb       | not null                                 | Raw AI extraction output   |
-| image_path     | text        | not null                                 | R2 object path             |
-| created_at     | timestamptz | not null, default `now()`                | Insert time                |
+| raw_extraction | jsonb       | nullable                                 | Raw AI extraction output   |
+| image_path     | text        | nullable                                 | R2 object path             |
+| created_at     | timestamptz | default `now()`                          | Insert time                |
 
 ### Notes
 
 * `total_amount` may be NULL if extraction fails
-* `raw_extraction` is always stored for debugging and reprocessing
+* `raw_extraction` may be NULL; store when available
 * Currency conversion is explicitly out of scope for MVP
 
 ### SQL
@@ -79,14 +79,16 @@ Store structured data extracted from receipt images.
 ```sql
 create table expenses (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references users(id) on delete cascade,
+  user_id uuid not null,
   merchant text,
   total_amount numeric,
-  currency text not null default 'USD',
+  currency text default 'IDR',
   date date,
-  raw_extraction jsonb not null,
-  image_path text not null,
-  created_at timestamptz not null default now()
+  raw_extraction jsonb,
+  image_path text,
+  created_at timestamptz default now(),
+  constraint expenses_user_id_fkey
+    foreign key (user_id) references users(id)
 );
 ```
 
@@ -107,7 +109,7 @@ Additional indexes are intentionally omitted for MVP.
 ## Referential Integrity
 
 * Every `expenses.user_id` must reference a valid `users.id`
-* Deleting a user cascades to delete their expenses
+* Deleting a user requires handling dependent `expenses` rows (no cascade)
 
 ---
 
