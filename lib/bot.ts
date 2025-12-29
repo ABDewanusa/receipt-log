@@ -10,13 +10,10 @@ if (!token) {
   throw new Error('TELEGRAM_BOT_TOKEN is not defined in environment variables');
 }
 
-// Initialize bot with polling
-const bot = new TelegramBot(token, { polling: true });
+// Initialize bot without polling
+const bot = new TelegramBot(token, { polling: false });
 
-console.log('Bot started with polling...');
-
-// Handle /start command
-bot.onText(/\/start/, (msg) => {
+export async function handleStartCommand(msg: TelegramBot.Message) {
   const chatId = msg.chat.id;
   const welcomeMessage = `
 👋 Welcome to ReceiptLog!
@@ -24,11 +21,10 @@ bot.onText(/\/start/, (msg) => {
 Send me a photo of a receipt and I’ll turn it into an expense you can export as CSV.
   `.trim();
 
-  bot.sendMessage(chatId, welcomeMessage);
-});
+  await bot.sendMessage(chatId, welcomeMessage);
+}
 
-// Handle photo messages
-bot.on('photo', async (msg) => {
+export async function handlePhotoMessage(msg: TelegramBot.Message) {
   const chatId = msg.chat.id;
   const userId = msg.from?.id;
   
@@ -37,7 +33,7 @@ bot.on('photo', async (msg) => {
   }
 
   // Acknowledge receipt immediately
-  const processingMsg = await bot.sendMessage(chatId, 'Receipt received! Processing...');
+  await bot.sendMessage(chatId, 'Receipt received! Processing...');
   
   const photo = msg.photo[msg.photo.length - 1]; // Get highest resolution
   console.log(`Received photo: ${photo.file_id} from User: ${userId}`);
@@ -71,7 +67,7 @@ bot.on('photo', async (msg) => {
     console.error('Error processing photo:', error);
     await bot.sendMessage(chatId, '⚠️ I couldn’t save this image. Please try again.');
   }
-});
+}
 
-// Export for potential future use (though strictly standalone for now)
+// Export for usage in webhooks or scripts
 export default bot;
