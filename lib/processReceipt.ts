@@ -4,6 +4,7 @@ import { compressImage } from './image';
 import { uploadReceiptImage } from './r2';
 import { extractReceipt } from './gemini';
 import { insertExpense } from './db/insertExpense';
+import { getOrCreateUser } from './users';
 import { PersistableExpense } from './types';
 import bot from './bot';
 
@@ -15,8 +16,8 @@ export interface ProcessReceiptResult {
 
 export async function processReceipt(msg: TelegramBot.Message): Promise<ProcessReceiptResult> {
   try {
-    const userId = msg.from?.id;
-    if (!userId) throw new Error('No user ID found in message');
+    const telegramUserId = msg.from?.id;
+    if (!telegramUserId) throw new Error('No user ID found in message');
 
     const photo = msg.photo?.[msg.photo.length - 1];
     if (!photo) throw new Error('No photo found in message');
@@ -32,18 +33,22 @@ export async function processReceipt(msg: TelegramBot.Message): Promise<ProcessR
     // 2. Compress
     const compressedBuffer = await compressImage(buffer);
 
-    // 3. Upload to R2
+    // 3. Upload to R2 (Using Telegram ID for path is fine/intended)
     const expenseId = uuidv4();
-    await uploadReceiptImage(userId, expenseId, compressedBuffer);
-    const imagePath = `receipts/${userId}/${expenseId}.jpg`;
+    await uploadReceiptImage(telegramUserId, expenseId, compressedBuffer);
+    const imagePath = `receipts/${telegramUserId}/${expenseId}.jpg`;
 
-    // 4. Extract
+    // 4. Resolve User ID (Telegram ID -> Internal UUID)
+    // This looks up the user in the DB and returns their UUID
+    const internalUserId = await getOrCreateUser(telegramUserId);
+
+    // 5. Extract
     const { rawText, parsed } = await extractReceipt(compressedBuffer);
 
-    // 5. Prepare Expense
+    // 6. Prepare Expense
     const expense: PersistableExpense = {
       id: expenseId,
-      user_id: String(userId),
+      user_id: internalUserId, // Use the Internal UUID here
       merchant: parsed.merchant,
       total_amount: parsed.total_amount,
       currency: parsed.currency,
