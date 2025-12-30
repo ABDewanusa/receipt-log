@@ -15,7 +15,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: 'ok', message: 'Ignored: Not a message update' });
     }
 
-    // TODO: Pass 'body.message' to bot logic
+    // -------------------------------------------------------------------------
+    // RULE: Ensure 200 OK Within Time Limit (Acknowledge first, process later)
+    // -------------------------------------------------------------------------
+    // We must return immediately to prevent Telegram timeouts.
+    // Complex processing (Gemini, R2) should be handled asynchronously 
+    // (e.g., via `after()`, queues, or background jobs) in future steps.
     
     return NextResponse.json({ status: 'ok' });
   } catch (error) {

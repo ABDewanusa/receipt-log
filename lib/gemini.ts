@@ -48,21 +48,66 @@ export function parseExtractionText(text: string): ExtractionResult {
     total_amount: null,
     currency: null,
     date: null,
+    missing_fields: ['merchant', 'total_amount', 'currency', 'date'],
+    status: 'error',
+    raw_text: text || '', // Ensure raw text is preserved even in fallback
   };
+
   try {
     const obj = JSON.parse(text);
-    const valid =
-      obj &&
-      (typeof obj.merchant === 'string' || obj.merchant === null) &&
-      (typeof obj.total_amount === 'number' || obj.total_amount === null) &&
-      (typeof obj.currency === 'string' || obj.currency === null) &&
-      (typeof obj.date === 'string' || obj.date === null);
-    if (!valid) return fallback;
+    if (!obj || typeof obj !== 'object') return fallback;
+
+    // 1. Validate & Normalize fields
+    let merchant = typeof obj.merchant === 'string' ? obj.merchant.trim() : null;
+    if (merchant === '') merchant = null;
+
+    let total_amount = typeof obj.total_amount === 'number' ? obj.total_amount : null;
+    // Validate total_amount > 0
+    if (total_amount !== null && total_amount <= 0) {
+      total_amount = null;
+    }
+
+    let currency = typeof obj.currency === 'string' ? obj.currency.trim().toUpperCase() : null;
+    // Basic currency validation (3 letters)
+    if (currency && currency.length !== 3) {
+      // If it's not 3 letters, maybe it's a symbol? For now, if strictly 3 chars is expected:
+      // But let's just normalize case. If it's "Rp", we might want "IDR". 
+      // For now, just uppercase.
+    }
+
+    let date = typeof obj.date === 'string' ? obj.date.trim() : null;
+    // Parse date safely
+    if (date) {
+      const parsedDate = new Date(date);
+      if (isNaN(parsedDate.getTime())) {
+        date = null; // Invalid date string
+      } else {
+        // Optional: Standardize format (e.g. YYYY-MM-DD), but keeping original string if valid is safer for now
+        // unless we want to force ISO. Let's keep it if valid.
+      }
+    }
+
+    // 2. Identify missing values
+    const missing_fields: string[] = [];
+    if (!merchant) missing_fields.push('merchant');
+    if (total_amount === null) missing_fields.push('total_amount');
+    if (!currency) missing_fields.push('currency');
+    if (!date) missing_fields.push('date');
+
+    // 3. Determine status
+    // If any field is missing, it's incomplete.
+    // If all fields are missing/null, it might be 'error' or just very incomplete.
+    // Let's use 'incomplete' if parsing succeeded but fields are null.
+    const status = missing_fields.length === 0 ? 'complete' : 'incomplete';
+
     return {
-      merchant: obj.merchant ?? null,
-      total_amount: obj.total_amount ?? null,
-      currency: obj.currency ?? null,
-      date: obj.date ?? null,
+      merchant,
+      total_amount,
+      currency,
+      date,
+      missing_fields,
+      status,
+      raw_text: text, // Store successful raw text
     };
   } catch {
     return fallback;
