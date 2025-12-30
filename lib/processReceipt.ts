@@ -55,7 +55,7 @@ export async function processReceipt(msg: TelegramBot.Message): Promise<ProcessR
       image_path: imagePath
     };
 
-    // 6. Insert
+    // 7. Insert
     const dbSuccess = await insertExpense(expense);
     
     if (!dbSuccess) {
