@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { processReceipt } from '../../../../lib/processReceipt';
+import { handleStartCommand } from '../../../../lib/bot';
 import { sendTelegramConfirmation } from '../../../../lib/feedback/sendTelegramConfirmation';
 import { formatSuccessMessage } from '../../../../lib/feedback/formatSuccessMessage';
 import { formatPartialMessage } from '../../../../lib/feedback/formatPartialMessage';
@@ -21,6 +22,12 @@ export async function POST(request: Request) {
 
     const msg = body.message;
     const chatId = msg.chat.id;
+
+    // Handle Text-Only Messages (Onboarding / Help)
+    if (msg.text && !msg.photo) {
+      await handleStartCommand(msg);
+      return NextResponse.json({ status: 'ok' });
+    }
 
     // Check for photo
     if (msg.photo && msg.photo.length > 0) {
