@@ -1,4 +1,4 @@
-import { sendTelegramConfirmation } from '../lib/telegram';
+import { sendTelegramConfirmation } from '../lib/feedback/sendTelegramConfirmation';
 
 async function testTelegram() {
   console.log('🧪 Testing sendTelegramConfirmation');

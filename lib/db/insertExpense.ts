@@ -11,7 +11,7 @@ import { PersistableExpense } from '../types';
  * - raw_extraction must NOT be null and must contain raw_text.
  * - DB Insert Failure: Logs error, does NOT throw, does NOT retry.
  */
-export async function insertExpense(input: PersistableExpense): Promise<void> {
+export async function insertExpense(input: PersistableExpense): Promise<boolean> {
   // Enforce image_path requirement (Strict check before DB attempt)
   if (!input.image_path) {
     throw new Error('Cannot insert expense: image_path is missing. Image upload must succeed first.');
@@ -44,11 +44,12 @@ export async function insertExpense(input: PersistableExpense): Promise<void> {
     if (error) {
       console.error('Error inserting expense (Partial Failure handled):', error);
       // Do NOT throw. Swallow error to prevent webhook crash.
-      return;
+      return false;
     }
+    return true;
   } catch (err) {
     console.error('Unexpected error during expense insertion:', err);
     // Do NOT throw.
-    return;
+    return false;
   }
 }

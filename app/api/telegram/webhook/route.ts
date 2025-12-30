@@ -1,32 +1,63 @@
 import { NextResponse } from 'next/server';
+import { processReceipt } from '../../../../lib/processReceipt';
+import { sendTelegramConfirmation } from '../../../../lib/feedback/sendTelegramConfirmation';
+import { formatSuccessMessage } from '../../../../lib/feedback/formatSuccessMessage';
+import { formatPartialMessage } from '../../../../lib/feedback/formatPartialMessage';
+import { formatFailureMessage } from '../../../../lib/feedback/formatFailureMessage';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log('Webhook received:', JSON.stringify(body, null, 2));
     
     // Minimal validation
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ status: 'ok', message: 'Ignored: Invalid payload' });
     }
 
-    // Ignore updates without 'message' (e.g., edited_message, channel_post, etc.)
+    // Ignore updates without 'message'
     if (!('message' in body)) {
       return NextResponse.json({ status: 'ok', message: 'Ignored: Not a message update' });
     }
 
-    // -------------------------------------------------------------------------
-    // RULE: Ensure 200 OK Within Time Limit (Acknowledge first, process later)
-    // -------------------------------------------------------------------------
-    // We must return immediately to prevent Telegram timeouts.
-    // Complex processing (Gemini, R2) should be handled asynchronously 
-    // (e.g., via `after()`, queues, or background jobs) in future steps.
-    
+    const msg = body.message;
+    const chatId = msg.chat.id;
+
+    // Check for photo
+    if (msg.photo && msg.photo.length > 0) {
+       // Optional: Send "Processing..." typing status or message?
+       // For now, keeping it simple as per instructions.
+       
+       const result = await processReceipt(msg);
+
+       if (result.success && result.expense) {
+           const { expense } = result;
+           // Determine User-Facing Outcome
+           
+           // Case 1: Success (Total amount present)
+           if (expense.total_amount !== null && expense.total_amount !== undefined) {
+               const text = formatSuccessMessage(expense);
+               await sendTelegramConfirmation(chatId, text);
+           } 
+           // Case 2: Partial (Expense saved, but total_amount missing)
+           else {
+               const text = formatPartialMessage(expense, expense.raw_extraction.missing_fields);
+               await sendTelegramConfirmation(chatId, text);
+           }
+       } else {
+           // Case 3: Failure (Persistence failed)
+           const text = formatFailureMessage();
+           await sendTelegramConfirmation(chatId, text);
+       }
+    } else {
+        // Handle non-photo messages? (e.g. /start)
+        // Ignoring for now based on strict task scope, but usually good to handle /start.
+        // User didn't ask for /start handling here, just the receipt flow.
+    }
+
     return NextResponse.json({ status: 'ok' });
   } catch (error) {
-    console.error('Error parsing webhook body:', error);
-    // Even on error, we often want to return 200 to Telegram to stop it from retrying
-    // But for invalid JSON request itself, 400 is appropriate if it didn't come from Telegram
-    return NextResponse.json({ status: 'error', message: 'Invalid JSON' }, { status: 400 });
+    console.error('Webhook error:', error);
+    // Always return 200 to Telegram to prevent retries of bad payloads
+    return NextResponse.json({ status: 'ok' }); 
   }
 }

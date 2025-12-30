@@ -1,4 +1,6 @@
-import { formatSuccessMessage, formatPartialMessage, formatFailureMessage } from '../lib/formatters';
+import { formatSuccessMessage } from '../lib/feedback/formatSuccessMessage';
+import { formatPartialMessage } from '../lib/feedback/formatPartialMessage';
+import { formatFailureMessage } from '../lib/feedback/formatFailureMessage';
 
 console.log('🧪 Testing formatSuccessMessage\n');
 
