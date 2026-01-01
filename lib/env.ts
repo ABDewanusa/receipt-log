@@ -19,3 +19,6 @@ export const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 export const SUPABASE_URL = process.env.SUPABASE_URL;
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+export const APP_URL = process.env.APP_URL || (process.env.NODE_ENV === 'production' ? 'https://receipt-log.vercel.app' : 'http://localhost:3000');
+export const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-do-not-use-in-prod';
+

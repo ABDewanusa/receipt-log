@@ -8,6 +8,8 @@ import { formatFailureMessage } from '../../../../lib/feedback/formatFailureMess
 import { getExpensesForUser } from '../../../../lib/export/fetchUserExpenses';
 import { generateExpensesCSV } from '../../../../lib/export/generateCsv';
 import { sendCsvViaTelegram } from '../../../../lib/export/sendCsvViaTelegram';
+import { APP_URL } from '../../../../lib/env';
+import { signToken } from '../../../../lib/auth';
 
 export async function POST(request: Request) {
   try {
@@ -43,6 +45,13 @@ export async function POST(request: Request) {
 
         // Send CSV via Telegram
         await sendCsvViaTelegram(chatId, csv, 'expenses.csv');
+        return NextResponse.json({ status: 'ok' });
+      }
+
+      if (msg.text === '/web') {
+        const token = signToken({ tid: msg.from.id });
+        const url = `${APP_URL}/web?token=${token}`;
+        await sendTelegramConfirmation(chatId, `Here is your dashboard link (valid for 1 hour):\n${url}`);
         return NextResponse.json({ status: 'ok' });
       }
 

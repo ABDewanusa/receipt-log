@@ -1,25 +1,41 @@
 Project: ReceiptLog (MVP)
 
 Stage:
-Building MVP for first real users.
+Validation Ready.
+The core MVP features are implemented and ready for deployment/testing.
 
 Primary Goal:
 Telegram receipt → structured expense → CSV export/Web View.
 
-Current Client:
-Telegram bot + Web Dashboard.
+Current Status:
+- Telegram Bot:
+    - /start: Implemented.
+    - /export: Implemented (Sends CSV).
+    - /web: Implemented (Sends Magic Link).
+    - Photo Handling: Implemented (Compress -> R2 -> Gemini -> DB).
+- Web Dashboard:
+    - Read-only list of expenses: Implemented.
+    - Export CSV button: Implemented.
+    - Empty states: Implemented.
+- Backend:
+    - Next.js 15+ Server Components.
+    - Supabase (Postgres) for data.
+    - Cloudflare R2 for storage.
+    - Gemini 1.5 Flash for extraction.
+    - Environment variables centralized and secured.
 
-What Exists:
-- PRD is finalized
-- Tech Plan exists
-- Supabase + R2 chosen
-- No WhatsApp yet
-- Minimal read-only dashboard planned
+Deviations from Plan:
+- Dashboard: Minimal implementation, relies on URL query param for user lookup.
+
+Next Steps (Validation):
+1. Deploy to Vercel.
+2. Set up real Telegram Webhook.
+3. Perform end-to-end test with real receipts.
+4. Verify CSV output format.
 
 Hard Rules:
 - Follow BUILD_CONTRACT.md
-- Follow AI_EXTRACTION.md when touching receipts
-- Optimize for shipping, not elegance
+- Optimize for shipping
 - Free-tier friendly only (Vercel)
 
 Definition of Success:

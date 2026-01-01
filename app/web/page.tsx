@@ -1,17 +1,27 @@
 import { supabase } from '../../lib/supabase';
 import { getUserByTelegramId } from '../../lib/users';
+import { verifyToken } from '../../lib/auth';
 
 export default async function WebPage(props: {
-  searchParams: Promise<{ tid?: string }>;
+  searchParams: Promise<{ token?: string }>;
 }) {
   const searchParams = await props.searchParams;
-  const tid = searchParams.tid;
+  const token = searchParams.token;
+  
+  let tid: number | undefined;
+
+  if (token) {
+    const payload = verifyToken(token);
+    if (payload && payload.tid) {
+      tid = payload.tid;
+    }
+  }
 
   if (!tid) {
     return (
       <div className="p-8 font-sans text-center">
-        <h1 className="text-xl font-bold mb-4">Whoops!</h1>
-        <p>We need your Telegram ID to show your receipts. Please open this link from the Telegram bot.</p>
+        <h1 className="text-xl font-bold mb-4">Invalid or Expired Link</h1>
+        <p>This link is invalid or has expired. Please ask the bot for a new /web link.</p>
       </div>
     );
   }
