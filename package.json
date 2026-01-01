@@ -35,6 +35,7 @@
     "node-telegram-bot-api": "^0.67.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "server-only": "^0.0.1",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

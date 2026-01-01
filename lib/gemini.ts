@@ -1,10 +1,9 @@
-import './env';
+import { GEMINI_API_KEY } from './env';
 import fs from 'fs';
 import path from 'path';
 import { ExtractionResult } from './types';
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
+if (!GEMINI_API_KEY) {
   throw new Error('GEMINI_API_KEY is not set');
 }
 
@@ -13,7 +12,7 @@ const endpoint = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.5
 
 export async function extractWithGemini(imageBuffer: Buffer, mimeType = 'image/jpeg'): Promise<string> {
   try {
-    const res = await fetch(`${endpoint}?key=${apiKey}`, {
+    const res = await fetch(`${endpoint}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

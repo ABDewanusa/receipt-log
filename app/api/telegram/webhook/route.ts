@@ -5,6 +5,9 @@ import { sendTelegramConfirmation } from '../../../../lib/feedback/sendTelegramC
 import { formatSuccessMessage } from '../../../../lib/feedback/formatSuccessMessage';
 import { formatPartialMessage } from '../../../../lib/feedback/formatPartialMessage';
 import { formatFailureMessage } from '../../../../lib/feedback/formatFailureMessage';
+import { getExpensesForUser } from '../../../../lib/export/fetchUserExpenses';
+import { generateExpensesCSV } from '../../../../lib/export/generateCsv';
+import { sendCsvViaTelegram } from '../../../../lib/export/sendCsvViaTelegram';
 
 export async function POST(request: Request) {
   try {
@@ -23,8 +26,26 @@ export async function POST(request: Request) {
     const msg = body.message;
     const chatId = msg.chat.id;
 
-    // Handle Text-Only Messages (Onboarding / Help)
+    // Handle Text-Only Messages (Onboarding / Help / Export)
     if (msg.text && !msg.photo) {
+      if (msg.text === '/export') {
+        // Fetch expenses
+        const expenses = await getExpensesForUser(msg.from.id);
+
+        // Handle empty dataset
+        if (expenses.length === 0) {
+          await sendTelegramConfirmation(chatId, "You don't have any expenses recorded yet. Send me a receipt to get started!");
+          return NextResponse.json({ status: 'ok' });
+        }
+
+        // Generate CSV
+        const csv = generateExpensesCSV(expenses);
+
+        // Send CSV via Telegram
+        await sendCsvViaTelegram(chatId, csv, 'expenses.csv');
+        return NextResponse.json({ status: 'ok' });
+      }
+
       await handleStartCommand(msg);
       return NextResponse.json({ status: 'ok' });
     }

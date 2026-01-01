@@ -1,11 +1,7 @@
-import dotenv from 'dotenv';
-import path from 'path';
-
-// Load env vars from .env.local
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-
+import '../lib/env'; // Ensure env vars are loaded
 import { randomUUID } from 'crypto';
 import fs from 'fs';
+import path from 'path';
 
 async function main() {
   // Dynamic import to ensure env vars are loaded first

@@ -1,6 +1,5 @@
-import '../env';
+import { TELEGRAM_BOT_TOKEN } from '../env';
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 /**

@@ -1,10 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-
-// Ensure env vars are loaded before this file is imported, or checks here.
-// But following the pattern, we assume process.env is populated.
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from './env';
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('Missing Supabase environment variables');

@@ -1,17 +1,15 @@
-import './env'; // Must be first
+import { TELEGRAM_BOT_TOKEN } from './env'; // Must be first
 import TelegramBot from 'node-telegram-bot-api';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadReceiptImage } from './r2';
 import { compressImage } from './image';
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
-
-if (!token) {
+if (!TELEGRAM_BOT_TOKEN) {
   throw new Error('TELEGRAM_BOT_TOKEN is not defined in environment variables');
 }
 
 // Initialize bot without polling
-const bot = new TelegramBot(token, { polling: false });
+const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
 
 export async function handleStartCommand(msg: TelegramBot.Message) {
   const chatId = msg.chat.id;
